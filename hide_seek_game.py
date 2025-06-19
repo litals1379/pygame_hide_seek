@@ -28,7 +28,7 @@ DARK_GREEN = (0, 128, 0)
 PURPLE = (160, 32, 240)
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-FONT = pygame.font.SysFont("Segoe UI Emoji", 22, bold=True)
+FONT = pygame.font.SysFont("Segoe UI Emoji", 28)
 
 class GameState(Enum):
     MENU = 1
@@ -52,6 +52,35 @@ class HideSeekGame:
         for key in self.tom_images:
             self.tom_images[key] = pygame.transform.scale(self.tom_images[key], (CELL_SIZE, CELL_SIZE))
         self.tom_direction = "idle"
+
+        self.spike_images = {
+            "up": pygame.image.load("spike/spike_walking_up.png"),
+            "down": pygame.image.load("spike/spike_walking_down.png"),
+            "left": pygame.image.load("spike/spike_walking_left.png"),
+            "right": pygame.image.load("spike/spike_walking_right.png"),
+            "idle": pygame.image.load("spike/spike_standing.png"),
+        }
+        for key in self.spike_images:
+            self.spike_images[key] = pygame.transform.scale(self.spike_images[key], (CELL_SIZE, CELL_SIZE))
+        self.spike_direction = "idle"
+
+        self.jerry_images = [
+            pygame.transform.scale(pygame.image.load("jerry/jerry_hiding1.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("jerry/jerry_hiding2.png"), (CELL_SIZE, CELL_SIZE)),
+            pygame.transform.scale(pygame.image.load("jerry/jerry_hiding3.png"), (CELL_SIZE, CELL_SIZE))
+        ]
+        self.jerry_image = self.jerry_images[0]  
+
+        self.feedback_images = {
+            "FOUND": pygame.image.load("feed_back/found.png"),
+            "BURNING": pygame.image.load("feed_back/burning_hot.png"),
+            "HOT": pygame.image.load("feed_back/hot.png"),
+            "WARM": pygame.image.load("feed_back/warm.png"),
+            "COOL": pygame.image.load("feed_back/cool.png"),
+            "COLD": pygame.image.load("feed_back/cold.png")
+        }
+        for key in self.feedback_images:
+            self.feedback_images[key] = pygame.transform.scale(self.feedback_images[key], (180, 180))
 
         self.state = GameState.MENU
         self.max_steps = 15
@@ -84,12 +113,13 @@ class HideSeekGame:
             # טקסט ממורכז
             instructions = [
                 "🎮 Two players: Tom (You) vs Spike (Computer)",
-                "🐭 Jerry hides randomly each game, you have to find him first!",
+                "🐭 Jerry hides randomly each game,",
+                "you have to find him first!",
                 "🎯 Each player gets 15 steps to find him",
                 "🔥 Hot = close | ❄️ Cold = far"
             ]
             for i, line in enumerate(instructions):
-                instr = FONT.render(line, True, (255, 255, 255))
+                instr = FONT.render(line, True, (0, 0, 0))
                 instr_rect = instr.get_rect(center=(WINDOW_WIDTH // 2, 80 + i * 35))
                 screen.blit(instr, instr_rect)
 
@@ -134,16 +164,16 @@ class HideSeekGame:
 
     def get_feedback(self, distance):
         if distance == 0:
-            return "FOUND!", GREEN
+            return "FOUND"
         elif distance <= 2:
-            return "BURNING HOT!", RED
+            return "BURNING"
         elif distance <= 4:
-            return "Hot", ORANGE
+            return "HOT"
         elif distance <= 6:
-            return "Warm", YELLOW
+            return "WARM"
         elif distance <= 10:
-            return "Cool", LIGHT_GRAY
-        return "Cold", BLUE
+            return "COOL"
+        return "COLD"
 
     def computer_move(self):
         best_move = None
@@ -157,9 +187,25 @@ class HideSeekGame:
                     best_score = d
                     best_move = (nx, ny)
         if best_move:
+            dx = best_move[0] - self.seeker2_pos[0]
+            dy = best_move[1] - self.seeker2_pos[1]
+            if dx == -1:
+                self.spike_direction = "up"
+            elif dx == 1:
+                self.spike_direction = "down"
+            elif dy == -1:
+                self.spike_direction = "left"
+            elif dy == 1:
+                self.spike_direction = "right"
+            else:
+                self.spike_direction = "idle"
+
             self.seeker2_pos = best_move
             if self.seeker2_pos == self.hidden_pos:
                 self.winner = "Computer"
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load("sound_track/lose.mp3")
+                pygame.mixer.music.play()
                 self.state = GameState.GAME_OVER
             else:
                 self.state = GameState.PLAYER1_TURN
@@ -172,17 +218,17 @@ class HideSeekGame:
                 if (x, y) == self.seeker1_pos:
                     screen.blit(self.tom_images[self.tom_direction], rect.topleft)
                 elif (x, y) == self.seeker2_pos:
-                    pygame.draw.circle(screen, PURPLE, rect.center, CELL_SIZE // 3)
+                   screen.blit(self.spike_images[self.spike_direction], rect.topleft)
                 if self.state == GameState.GAME_OVER and (x, y) == self.hidden_pos:
-                    pygame.draw.circle(screen, BLUE, rect.center, CELL_SIZE // 4)
+                    screen.blit(self.jerry_image, rect.topleft)
                 pygame.draw.rect(screen, BLACK, rect, 2)
 
     def draw_ui(self):
         ui_x = WIDTH + 10
         if self.state == GameState.PLAYER1_TURN or self.state == GameState.PLAYER2_TURN:
             screen.blit(self.font.render(f"Steps: {self.steps_remaining}", True, BLACK), (ui_x, 50))
-            if self.feedback_text:
-                screen.blit(self.font.render(self.feedback_text, True, BLACK), (ui_x, 80))
+        if self.feedback_text in self.feedback_images:
+            screen.blit(self.feedback_images[self.feedback_text], (ui_x, 80))
         elif self.state == GameState.GAME_OVER:
             screen.blit(self.big_font.render(f"{self.winner} Wins!", True, BLACK), (ui_x, 50))
             screen.blit(self.font.render("Press any key to restart", True, BLACK), (ui_x, 100))
@@ -198,6 +244,8 @@ class HideSeekGame:
         self.feedback_text = ""
         self.winner = None
         self.tom_direction = "idle"
+        self.spike_direction = "idle"
+        self.jerry_image = random.choice(self.jerry_images)
         self.state = GameState.PLAYER1_TURN
 
     def run(self):
@@ -226,13 +274,17 @@ class HideSeekGame:
                             self.tom_direction = "right"
                         else:
                             continue
+                        self.steps_remaining -= 1
 
                         if self.seeker1_pos == self.hidden_pos:
                             self.winner = "You"
+                            pygame.mixer.music.stop()
+                            pygame.mixer.music.load("sound_track/win.wav")
+                            pygame.mixer.music.play()
                             self.state = GameState.GAME_OVER
                         else:
                             dist = self.a_star_distance(self.seeker1_pos, self.hidden_pos)
-                            self.feedback_text, _ = self.get_feedback(dist)
+                            self.feedback_text = self.get_feedback(dist)
                             self.state = GameState.PLAYER2_TURN
 
             if self.state == GameState.PLAYER2_TURN:
