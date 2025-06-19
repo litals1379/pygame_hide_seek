@@ -5,6 +5,7 @@ import heapq
 from enum import Enum
 
 pygame.init()
+pygame.mixer.init()
 
 GRID_SIZE = 8
 CELL_SIZE = 60
@@ -187,6 +188,8 @@ class HideSeekGame:
             screen.blit(self.font.render("Press any key to restart", True, BLACK), (ui_x, 100))
 
     def start_game(self):
+        pygame.mixer.music.load("sound_track/backgroud_music.mp3")
+        pygame.mixer.music.play(-1) 
         self.generate_hiding_spots()
         self.hidden_pos = random.choice(self.hiding_spots)
         self.seeker1_pos = (0, 0)
