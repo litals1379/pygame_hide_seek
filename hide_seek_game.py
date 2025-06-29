@@ -24,7 +24,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 165, 0)
-DARK_GREEN = (0, 128, 0)
+PINK = (255, 105, 180)
 PURPLE = (160, 32, 240)
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -214,7 +214,7 @@ class HideSeekGame:
         for x in range(GRID_SIZE):
             for y in range(GRID_SIZE):
                 rect = pygame.Rect(y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                pygame.draw.rect(screen, DARK_GREEN if (x, y) in self.hiding_spots else WHITE, rect)
+                pygame.draw.rect(screen, PINK if (x, y) in self.hiding_spots else WHITE, rect)
                 if (x, y) == self.seeker1_pos:
                     screen.blit(self.tom_images[self.tom_direction], rect.topleft)
                 elif (x, y) == self.seeker2_pos:
